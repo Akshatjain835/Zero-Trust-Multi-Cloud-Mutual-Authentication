@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  cloud_b_ehr:
+    build: ./backend/services/cloudB_ehr
+    container_name: cloud_b_gcp_ehr
+    ports:
+      - "5002:5002"
+    environment:
+      - PORT=5002
+      - REQUIRE_MTLS=true
+      - CA_CERT_PATH=/app/backend/certs/ca.crt
+      - SERVER_CERT_PATH=/app/backend/certs/cloudB.crt
+      - SERVER_KEY_PATH=/app/backend/certs/cloudB.key
+    volumes:
+      - ./backend/certs:/app/backend/certs:ro
+
+  cloud_c_appointments:
+    build: ./backend/services/cloudC_appointments
+    container_name: cloud_c_azure_appointments
+    ports:
+      - "5003:5003"
+    environment:
+      - PORT=5003
+      - REQUIRE_MTLS=true
+      - CA_CERT_PATH=/app/backend/certs/ca.crt
+      - SERVER_CERT_PATH=/app/backend/certs/cloudC.crt
+      - SERVER_KEY_PATH=/app/backend/certs/cloudC.key
+    volumes:
+      - ./backend/certs:/app/backend/certs:ro
+
+  cloud_a_auth:
+    build: ./backend/services/cloudA_auth
+    container_name: cloud_a_aws_gateway
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - CLOUD_B_URL=https://cloud_b_ehr:5002
+      - CLOUD_C_URL=https://cloud_c_appointments:5003
+      - CA_CERT_PATH=/app/backend/certs/ca.crt
+      - CLIENT_CERT_PATH=/app/backend/certs/cloudA.crt
+      - CLIENT_KEY_PATH=/app/backend/certs/cloudA.key
+    volumes:
+      - ./backend/certs:/app/backend/certs:ro
+    depends_on:
+      - cloud_b_ehr
+      - cloud_c_appointments
+
+  frontend:
+    build: ./frontend
+    container_name: healthcare_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_CLOUD_A_URL=http://localhost:5001
+    depends_on:
+      - cloud_a_auth
