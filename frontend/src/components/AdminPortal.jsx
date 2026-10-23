@@ -16,12 +16,13 @@ export default function AdminPortal({ token }) {
 
   const fetchRecords = async () => {
     try {
-      const docRes = await axios.get('/api/doctor/patients?doctorId=doc-1', {
+      const res = await axios.get('/api/admin/metrics', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (docRes.data.patients) setPatientsList(docRes.data.patients);
+      if (res.data.patients) setPatientsList(res.data.patients);
+      if (res.data.doctors) setDoctorsList(res.data.doctors);
     } catch (e) {
-      console.error(e);
+      console.error('Error fetching admin metrics:', e);
     }
   };
 

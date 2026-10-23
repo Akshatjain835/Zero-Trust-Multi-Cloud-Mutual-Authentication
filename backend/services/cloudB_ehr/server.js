@@ -1,9 +1,13 @@
+require('dotenv').config();
 const https = require('https');
-const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+
+const patientRoutes = require('./routes/patient.routes');
+const doctorRoutes = require('./routes/doctor.routes');
+const ehrRoutes = require('./routes/ehr.routes');
 const store = require('./store');
 
 const app = express();
@@ -17,7 +21,6 @@ const serverKeyPath = process.env.SERVER_KEY_PATH || path.join(certsDir, 'cloudB
 
 // Middleware to verify mTLS client certificate details
 app.use((req, res, next) => {
-  // If request came through mTLS HTTPS listener:
   const clientCert = req.socket.getPeerCertificate ? req.socket.getPeerCertificate() : null;
   const isAuthorized = req.clientIsAuthorized || (req.socket.authorized !== undefined ? req.socket.authorized : false);
 
@@ -42,46 +45,15 @@ app.get('/api/health', (req, res) => {
     status: 'ACTIVE',
     zeroTrustMode: 'ENFORCED',
     mtlsVerified: req.mtls.isAuthorized,
-    clientCertificate: req.mtls.clientCert
+    clientCertificate: req.mtls.clientCert,
+    timestamp: new Date().toISOString()
   });
 });
 
-// Get all doctors
-app.get('/api/doctors', (req, res) => {
-  res.json({ doctors: store.doctors, mtlsVerified: req.mtls.isAuthorized });
-});
-
-// Get doctor's assigned patients
-app.get('/api/doctors/:id/patients', (req, res) => {
-  const doctorPatients = store.getDoctorPatients(req.params.id);
-  res.json({ patients: doctorPatients, mtlsVerified: req.mtls.isAuthorized });
-});
-
-// Get all patients
-app.get('/api/patients', (req, res) => {
-  res.json({ patients: store.patients, mtlsVerified: req.mtls.isAuthorized });
-});
-
-// Get single patient
-app.get('/api/patients/:id', (req, res) => {
-  const patient = store.patients.find((p) => p.id === req.params.id || p.email === req.params.id);
-  if (!patient) {
-    return res.status(404).json({ error: 'Patient not found' });
-  }
-  res.json({ patient, mtlsVerified: req.mtls.isAuthorized });
-});
-
-// Admin register patient
-app.post('/api/patients', (req, res) => {
-  const newPatient = store.addPatient(req.body);
-  res.status(201).json({ message: 'Patient registered successfully in Cloud B', patient: newPatient });
-});
-
-// Admin register doctor
-app.post('/api/doctors', (req, res) => {
-  const newDoctor = store.addDoctor(req.body);
-  res.status(201).json({ message: 'Doctor registered successfully in Cloud B', doctor: newDoctor });
-});
+// Mount modular routes
+app.use('/api/patients', patientRoutes);
+app.use('/api/doctors', doctorRoutes);
+app.use('/api/ehr', ehrRoutes);
 
 // Load SSL/TLS certificates
 const options = {
@@ -92,8 +64,7 @@ const options = {
   rejectUnauthorized: true    // 🔒 Reject any connection not signed by Root CA!
 };
 
-const PORT = process.env.PORT || 5002;
-
+const PORT = process.env.CLOUD_B_PORT || 5002;
 const server = https.createServer(options, app);
 
 server.listen(PORT, () => {
