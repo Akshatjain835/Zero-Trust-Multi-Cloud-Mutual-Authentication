@@ -15,7 +15,7 @@ exports.registerPatient = async (req, res) => {
     const createdPatient = cloudBResponse.data.patient;
 
     // 2. Register credentials in Cloud A auth store
-    userStore.addUser({
+    await userStore.addUser({
       id: `usr-${createdPatient.id}`,
       email,
       password: password || 'patient123',
@@ -49,7 +49,7 @@ exports.registerDoctor = async (req, res) => {
     const createdDoctor = cloudBResponse.data.doctor;
 
     // 2. Register credentials in Cloud A auth store
-    userStore.addUser({
+    await userStore.addUser({
       id: `usr-${createdDoctor.id}`,
       email,
       password: password || 'doctor123',
@@ -78,8 +78,10 @@ exports.getSystemMetrics = async (req, res) => {
       mtlsClient.axios.get(`${mtlsClient.cloudCUrl}/api/appointments`)
     ]);
 
+    const totalUsersCount = await userStore.countUsers();
+
     res.json({
-      totalUsers: userStore.users.length,
+      totalUsers: totalUsersCount,
       totalPatients: patientsRes.data.patients?.length || 0,
       totalDoctors: doctorsRes.data.doctors?.length || 0,
       totalAppointments: appointmentsRes.data.appointments?.length || 0,

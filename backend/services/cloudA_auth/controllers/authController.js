@@ -2,14 +2,14 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const userStore = require('../store/userStore');
 
-exports.login = (req, res) => {
+exports.login = async (req, res) => {
   const { email, password, role } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
-  const user = userStore.findByEmail(email);
+  const user = await userStore.findByEmail(email);
   if (!user || user.password !== password) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }

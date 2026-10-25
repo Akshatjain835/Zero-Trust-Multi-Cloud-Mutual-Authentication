@@ -1,6 +1,6 @@
-// In-Memory User Credentials & Profiles for Cloud A (AWS Auth & Identity Gateway)
+const User = require('../models/User');
 
-const users = [
+const seedUsers = [
   {
     id: 'admin-1',
     email: 'admin@health.com',
@@ -50,23 +50,93 @@ const users = [
   }
 ];
 
+// In-memory cache for fallback resilience
+let inMemoryUsers = [...seedUsers];
+let isSeeded = false;
+
+async function initDB() {
+  if (isSeeded) return;
+  try {
+    const count = await User.countDocuments();
+    if (count === 0) {
+      console.log('🌱 Seeding Cloud A MongoDB (meditrust_auth) with initial users...');
+      await User.insertMany(seedUsers);
+      console.log('✅ Initial users seeded successfully into MongoDB.');
+    }
+    isSeeded = true;
+  } catch (err) {
+    console.warn('⚠️ MongoDB auto-seed deferred (using in-memory cache until DB connects):', err.message);
+  }
+}
+
+// Trigger initial seed check
+initDB();
+
 module.exports = {
-  users,
+  seedUsers,
 
-  findByEmail(email) {
-    return users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  get users() {
+    return inMemoryUsers;
   },
 
-  findById(id) {
-    return users.find((u) => u.id === id);
+  async findByEmail(email) {
+    if (!email) return null;
+    const cleanEmail = email.trim().toLowerCase();
+    try {
+      const doc = await User.findOne({ email: cleanEmail }).lean();
+      if (doc) return doc;
+    } catch (err) {
+      console.warn('MongoDB query failed, falling back to cache:', err.message);
+    }
+    return inMemoryUsers.find((u) => u.email.toLowerCase() === cleanEmail);
   },
 
-  addUser(userData) {
+  async findById(id) {
+    if (!id) return null;
+    try {
+      const doc = await User.findOne({ id }).lean();
+      if (doc) return doc;
+    } catch (err) {
+      console.warn('MongoDB query failed, falling back to cache:', err.message);
+    }
+    return inMemoryUsers.find((u) => u.id === id);
+  },
+
+  async addUser(userData) {
+    const count = await this.countUsers();
     const newUser = {
-      id: userData.id || `usr-${users.length + 1}`,
+      id: userData.id || `usr-${count + 1}`,
       ...userData
     };
-    users.push(newUser);
-    return newUser;
+
+    inMemoryUsers.push(newUser);
+
+    try {
+      const created = await User.create(newUser);
+      return created.toObject ? created.toObject() : created;
+    } catch (err) {
+      console.warn('MongoDB save failed, stored in memory cache:', err.message);
+      return newUser;
+    }
+  },
+
+  async countUsers() {
+    try {
+      const count = await User.countDocuments();
+      if (count > 0) return count;
+    } catch (err) {
+      // fallback
+    }
+    return inMemoryUsers.length;
+  },
+
+  async getAllUsers() {
+    try {
+      const docs = await User.find({}).lean();
+      if (docs && docs.length > 0) return docs;
+    } catch (err) {
+      // fallback
+    }
+    return inMemoryUsers;
   }
 };

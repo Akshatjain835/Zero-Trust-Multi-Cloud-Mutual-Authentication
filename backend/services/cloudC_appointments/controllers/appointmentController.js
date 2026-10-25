@@ -1,25 +1,24 @@
 const store = require('../store');
 
-exports.getAllAppointments = (req, res) => {
+exports.getAllAppointments = async (req, res) => {
+  const appointments = await store.getAppointments();
   res.json({
-    appointments: store.appointments,
-    total: store.appointments.length,
+    appointments,
+    total: appointments.length,
     mtlsVerified: req.mtls?.isAuthorized || false
   });
 };
 
-exports.getAppointmentById = (req, res) => {
-  const apt = store.appointments.find((a) => a.id === req.params.id);
+exports.getAppointmentById = async (req, res) => {
+  const apt = await store.getAppointment(req.params.id);
   if (!apt) {
     return res.status(404).json({ error: 'Appointment not found' });
   }
   res.json({ appointment: apt, mtlsVerified: req.mtls?.isAuthorized || false });
 };
 
-exports.getPatientAppointments = (req, res) => {
-  const patientApts = store.appointments
-    .filter((a) => a.patientId === req.params.patientId)
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+exports.getPatientAppointments = async (req, res) => {
+  const patientApts = await store.getPatientAppointments(req.params.patientId);
   res.json({
     patientId: req.params.patientId,
     appointments: patientApts,
@@ -28,10 +27,8 @@ exports.getPatientAppointments = (req, res) => {
   });
 };
 
-exports.getDoctorAppointments = (req, res) => {
-  const doctorApts = store.appointments
-    .filter((a) => a.doctorId === req.params.doctorId)
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+exports.getDoctorAppointments = async (req, res) => {
+  const doctorApts = await store.getDoctorAppointments(req.params.doctorId);
   res.json({
     doctorId: req.params.doctorId,
     appointments: doctorApts,
@@ -40,13 +37,13 @@ exports.getDoctorAppointments = (req, res) => {
   });
 };
 
-exports.createAppointment = (req, res) => {
+exports.createAppointment = async (req, res) => {
   const { patientId, patientName, doctorId, doctorName, department, date, time, notes } = req.body;
   if (!patientId || !doctorId || !date || !time) {
     return res.status(400).json({ error: 'patientId, doctorId, date, and time are required' });
   }
 
-  const newApt = store.addAppointment({
+  const newApt = await store.addAppointment({
     patientId,
     patientName: patientName || 'Registered Patient',
     doctorId,
@@ -66,8 +63,8 @@ exports.createAppointment = (req, res) => {
   });
 };
 
-exports.completeAppointment = (req, res) => {
-  const apt = store.completeAppointment(req.params.id);
+exports.completeAppointment = async (req, res) => {
+  const apt = await store.completeAppointment(req.params.id);
   if (!apt) {
     return res.status(404).json({ error: 'Appointment not found' });
   }
@@ -78,21 +75,13 @@ exports.completeAppointment = (req, res) => {
   });
 };
 
-exports.cancelAppointment = (req, res) => {
-  const apt = store.appointments.find((a) => a.id === req.params.id);
+exports.cancelAppointment = async (req, res) => {
+  const clientCN = req.mtls?.clientCert?.subject?.CN || 'cloud-a-auth';
+  const reason = req.body.reason || 'Cancelled by patient or physician';
+  const apt = await store.cancelAppointment(req.params.id, reason, clientCN);
   if (!apt) {
     return res.status(404).json({ error: 'Appointment not found' });
   }
-  apt.status = 'CANCELLED';
-  apt.cancellationReason = req.body.reason || 'Cancelled by patient or physician';
-
-  store.addAuditLog({
-    clientCN: req.mtls?.clientCert?.subject?.CN || 'cloud-a-auth',
-    action: 'CANCEL_APPOINTMENT',
-    targetService: 'Cloud C - Azure Appointments',
-    status: 'SUCCESS 200',
-    details: `Appointment ${apt.id} cancelled. Reason: ${apt.cancellationReason}`
-  });
 
   res.json({
     message: 'Appointment cancelled successfully',
@@ -100,3 +89,4 @@ exports.cancelAppointment = (req, res) => {
     mtlsVerified: req.mtls?.isAuthorized || false
   });
 };
+

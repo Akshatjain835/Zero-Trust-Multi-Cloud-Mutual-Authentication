@@ -1,14 +1,15 @@
 const store = require('../store');
 
-exports.getAllDoctors = (req, res) => {
+exports.getAllDoctors = async (req, res) => {
+  const doctors = await store.getDoctors();
   res.json({
-    doctors: store.doctors,
+    doctors,
     mtlsVerified: req.mtls?.isAuthorized || false
   });
 };
 
-exports.getDoctorById = (req, res) => {
-  const doctor = store.getDoctor(req.params.id);
+exports.getDoctorById = async (req, res) => {
+  const doctor = await store.getDoctor(req.params.id);
   if (!doctor) {
     return res.status(404).json({ error: 'Doctor not found in Cloud B records' });
   }
@@ -18,8 +19,8 @@ exports.getDoctorById = (req, res) => {
   });
 };
 
-exports.getDoctorPatients = (req, res) => {
-  const doctorPatients = store.getDoctorPatients(req.params.id);
+exports.getDoctorPatients = async (req, res) => {
+  const doctorPatients = await store.getDoctorPatients(req.params.id);
   res.json({
     doctorId: req.params.id,
     patients: doctorPatients,
@@ -28,13 +29,13 @@ exports.getDoctorPatients = (req, res) => {
   });
 };
 
-exports.registerDoctor = (req, res) => {
+exports.registerDoctor = async (req, res) => {
   const { name, email, specialty, department } = req.body;
   if (!name || !email) {
     return res.status(400).json({ error: 'Name and email are required' });
   }
 
-  const newDoctor = store.addDoctor({
+  const newDoctor = await store.addDoctor({
     name,
     email,
     specialty: specialty || 'General Medicine',
@@ -47,3 +48,4 @@ exports.registerDoctor = (req, res) => {
     mtlsVerified: req.mtls?.isAuthorized || false
   });
 };
+

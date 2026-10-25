@@ -1,7 +1,11 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const config = require('./config');
+const connectDB = require('./config/db');
+
+// Connect to MongoDB (meditrust_auth)
+connectDB();
+
 
 const authRoutes = require('./routes/auth.routes');
 const adminRoutes = require('./routes/admin.routes');

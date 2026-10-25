@@ -1,6 +1,14 @@
 version: '3.8'
 
 services:
+  mongodb:
+    image: mongo:latest
+    container_name: meditrust_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
   cloud_b_ehr:
     build: ./backend/services/cloudB_ehr
     container_name: cloud_b_gcp_ehr
@@ -12,8 +20,12 @@ services:
       - CA_CERT_PATH=/app/backend/certs/ca.crt
       - SERVER_CERT_PATH=/app/backend/certs/cloudB.crt
       - SERVER_KEY_PATH=/app/backend/certs/cloudB.key
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_EHR_URI=mongodb://mongodb:27017/meditrust_ehr
     volumes:
       - ./backend/certs:/app/backend/certs:ro
+    depends_on:
+      - mongodb
 
   cloud_c_appointments:
     build: ./backend/services/cloudC_appointments
@@ -26,8 +38,12 @@ services:
       - CA_CERT_PATH=/app/backend/certs/ca.crt
       - SERVER_CERT_PATH=/app/backend/certs/cloudC.crt
       - SERVER_KEY_PATH=/app/backend/certs/cloudC.key
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_APPOINTMENTS_URI=mongodb://mongodb:27017/meditrust_appointments
     volumes:
       - ./backend/certs:/app/backend/certs:ro
+    depends_on:
+      - mongodb
 
   cloud_a_auth:
     build: ./backend/services/cloudA_auth
@@ -41,9 +57,12 @@ services:
       - CA_CERT_PATH=/app/backend/certs/ca.crt
       - CLIENT_CERT_PATH=/app/backend/certs/cloudA.crt
       - CLIENT_KEY_PATH=/app/backend/certs/cloudA.key
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_AUTH_URI=mongodb://mongodb:27017/meditrust_auth
     volumes:
       - ./backend/certs:/app/backend/certs:ro
     depends_on:
+      - mongodb
       - cloud_b_ehr
       - cloud_c_appointments
 
@@ -56,3 +75,6 @@ services:
       - VITE_CLOUD_A_URL=http://localhost:5001
     depends_on:
       - cloud_a_auth
+
+volumes:
+  mongo_data:

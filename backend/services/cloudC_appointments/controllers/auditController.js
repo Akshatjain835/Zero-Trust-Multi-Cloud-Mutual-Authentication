@@ -1,17 +1,18 @@
 const store = require('../store');
 
-exports.getAuditLogs = (req, res) => {
+exports.getAuditLogs = async (req, res) => {
+  const auditLogs = await store.getAuditLogs();
   res.json({
-    auditLogs: store.auditLogs,
-    totalLogs: store.auditLogs.length,
+    auditLogs,
+    totalLogs: auditLogs.length,
     mtlsVerified: req.mtls?.isAuthorized || false,
     service: 'Cloud C - Azure Security Audit Service'
   });
 };
 
-exports.createAuditLog = (req, res) => {
+exports.createAuditLog = async (req, res) => {
   const { action, targetService, status, details, clientCN } = req.body;
-  const log = store.addAuditLog({
+  const log = await store.addAuditLog({
     action,
     targetService,
     status,
@@ -20,3 +21,4 @@ exports.createAuditLog = (req, res) => {
   });
   res.status(201).json({ message: 'Security audit entry committed', log });
 };
+

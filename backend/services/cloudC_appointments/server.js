@@ -1,9 +1,16 @@
+const path = require('path');
+// Load root .env (highest priority) and local .env
+require('dotenv').config({ path: path.join(__dirname, '..', '..', '..', '.env') });
 require('dotenv').config();
+
 const https = require('https');
 const fs = require('fs');
-const path = require('path');
 const express = require('express');
 const cors = require('cors');
+
+const { connectDB } = require('./config/db');
+// Connect to MongoDB (meditrust_appointments)
+connectDB();
 
 const appointmentRoutes = require('./routes/appointment.routes');
 const auditRoutes = require('./routes/audit.routes');

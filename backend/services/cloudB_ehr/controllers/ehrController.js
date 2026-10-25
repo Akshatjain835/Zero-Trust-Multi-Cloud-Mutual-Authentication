@@ -1,8 +1,8 @@
 const store = require('../store');
 
 // Vitals controllers
-exports.getPatientVitals = (req, res) => {
-  const vitals = store.getPatientVitals(req.params.patientId);
+exports.getPatientVitals = async (req, res) => {
+  const vitals = await store.getPatientVitals(req.params.patientId);
   res.json({
     patientId: req.params.patientId,
     vitals,
@@ -11,7 +11,7 @@ exports.getPatientVitals = (req, res) => {
   });
 };
 
-exports.addPatientVitals = (req, res) => {
+exports.addPatientVitals = async (req, res) => {
   const { patientId } = req.params;
   const { heartRate, bloodPressure, spO2, temperature, notes, recordedBy, doctorId } = req.body;
 
@@ -29,7 +29,7 @@ exports.addPatientVitals = (req, res) => {
     status = 'ELEVATED';
   }
 
-  const newVitals = store.addVitals({
+  const newVitals = await store.addVitals({
     patientId,
     heartRate: hr,
     bloodPressure,
@@ -49,8 +49,8 @@ exports.addPatientVitals = (req, res) => {
 };
 
 // Prescriptions controllers
-exports.getPatientPrescriptions = (req, res) => {
-  const rxList = store.getPatientPrescriptions(req.params.patientId);
+exports.getPatientPrescriptions = async (req, res) => {
+  const rxList = await store.getPatientPrescriptions(req.params.patientId);
   res.json({
     patientId: req.params.patientId,
     prescriptions: rxList,
@@ -59,7 +59,7 @@ exports.getPatientPrescriptions = (req, res) => {
   });
 };
 
-exports.addPrescription = (req, res) => {
+exports.addPrescription = async (req, res) => {
   const { patientId } = req.params;
   const { medication, dosage, frequency, duration, instructions, prescribedBy, doctorId } = req.body;
 
@@ -67,7 +67,7 @@ exports.addPrescription = (req, res) => {
     return res.status(400).json({ error: 'Medication, dosage, and frequency are required' });
   }
 
-  const newRx = store.addPrescription({
+  const newRx = await store.addPrescription({
     patientId,
     medication,
     dosage,
@@ -86,7 +86,7 @@ exports.addPrescription = (req, res) => {
   });
 };
 
-exports.updatePrescriptionStatus = (req, res) => {
+exports.updatePrescriptionStatus = async (req, res) => {
   const { rxId } = req.params;
   const { status } = req.body;
 
@@ -95,7 +95,7 @@ exports.updatePrescriptionStatus = (req, res) => {
     return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
   }
 
-  const updated = store.updatePrescriptionStatus(rxId, status);
+  const updated = await store.updatePrescriptionStatus(rxId, status);
   if (!updated) {
     return res.status(404).json({ error: 'Prescription not found' });
   }
@@ -106,3 +106,4 @@ exports.updatePrescriptionStatus = (req, res) => {
     mtlsVerified: req.mtls?.isAuthorized || false
   });
 };
+

@@ -1,6 +1,10 @@
-// Pre-seeded rich clinical store for Cloud B (GCP Patient & EHR Microservice)
+const Doctor = require('./models/Doctor');
+const Patient = require('./models/Patient');
+const Vital = require('./models/Vital');
+const Prescription = require('./models/Prescription');
 
-const doctors = [
+// Pre-seeded rich clinical dataset for Cloud B (GCP Patient & EHR Microservice)
+const seedDoctors = [
   {
     id: 'doc-1',
     name: 'Dr. Sarah Jenkins',
@@ -19,7 +23,7 @@ const doctors = [
   }
 ];
 
-const patients = [
+const seedPatients = [
   {
     id: 'pat-1',
     name: 'John Doe',
@@ -55,7 +59,7 @@ const patients = [
   }
 ];
 
-const vitals = [
+const seedVitals = [
   {
     id: 'vit-1',
     patientId: 'pat-1',
@@ -110,7 +114,7 @@ const vitals = [
   }
 ];
 
-const prescriptions = [
+const seedPrescriptions = [
   {
     id: 'rx-1',
     patientId: 'pat-1',
@@ -165,28 +169,83 @@ const prescriptions = [
   }
 ];
 
+// In-memory fallback caches
+let inMemoryDoctors = [...seedDoctors];
+let inMemoryPatients = [...seedPatients];
+let inMemoryVitals = [...seedVitals];
+let inMemoryPrescriptions = [...seedPrescriptions];
+
+let isSeeded = false;
+async function initCloudBDB() {
+  if (isSeeded) return;
+  try {
+    const docCount = await Doctor.countDocuments();
+    if (docCount === 0) {
+      console.log('🌱 Seeding Cloud B MongoDB (meditrust_ehr) with initial clinical records...');
+      await Promise.all([
+        Doctor.insertMany(seedDoctors),
+        Patient.insertMany(seedPatients),
+        Vital.insertMany(seedVitals),
+        Prescription.insertMany(seedPrescriptions)
+      ]);
+      console.log('✅ Cloud B Clinical EHR records seeded successfully into MongoDB.');
+    }
+    isSeeded = true;
+  } catch (err) {
+    console.warn('⚠️ Cloud B auto-seed deferred (using in-memory cache until DB connects):', err.message);
+  }
+}
+
+// Initial seed trigger
+initCloudBDB();
+
 module.exports = {
-  doctors,
-  patients,
-  vitals,
-  prescriptions,
+  get doctors() { return inMemoryDoctors; },
+  get patients() { return inMemoryPatients; },
+  get vitals() { return inMemoryVitals; },
+  get prescriptions() { return inMemoryPrescriptions; },
 
   // Patient methods
-  getPatient(id) {
-    return patients.find((p) => p.id === id || p.email === id);
+  async getPatients() {
+    try {
+      const docs = await Patient.find({}).lean();
+      if (docs && docs.length > 0) return docs;
+    } catch (e) { /* fallback */ }
+    return inMemoryPatients;
   },
 
-  addPatient(patientData) {
-    const id = `pat-${patients.length + 1}`;
+  async getPatient(id) {
+    try {
+      const doc = await Patient.findOne({ $or: [{ id }, { email: id }] }).lean();
+      if (doc) return doc;
+    } catch (e) { /* fallback */ }
+    return inMemoryPatients.find((p) => p.id === id || p.email === id);
+  },
+
+  async addPatient(patientData) {
+    const total = inMemoryPatients.length;
+    const id = `pat-${total + 1}`;
     const newPatient = {
       id,
       ...patientData,
       registeredAt: new Date().toISOString().split('T')[0]
     };
-    patients.push(newPatient);
+    inMemoryPatients.push(newPatient);
+
+    try {
+      await Patient.create(newPatient);
+      if (patientData.primaryDoctorId) {
+        await Doctor.updateOne(
+          { id: patientData.primaryDoctorId },
+          { $addToSet: { assignedPatients: id } }
+        );
+      }
+    } catch (err) {
+      console.warn('MongoDB save patient failed, cached in memory:', err.message);
+    }
 
     if (patientData.primaryDoctorId) {
-      const doc = doctors.find((d) => d.id === patientData.primaryDoctorId);
+      const doc = inMemoryDoctors.find((d) => d.id === patientData.primaryDoctorId);
       if (doc && !doc.assignedPatients.includes(id)) {
         doc.assignedPatients.push(id);
       }
@@ -195,66 +254,123 @@ module.exports = {
   },
 
   // Doctor methods
-  getDoctor(id) {
-    return doctors.find((d) => d.id === id || d.email === id);
+  async getDoctors() {
+    try {
+      const docs = await Doctor.find({}).lean();
+      if (docs && docs.length > 0) return docs;
+    } catch (e) { /* fallback */ }
+    return inMemoryDoctors;
   },
 
-  addDoctor(doctorData) {
-    const id = `doc-${doctors.length + 1}`;
+  async getDoctor(id) {
+    try {
+      const doc = await Doctor.findOne({ $or: [{ id }, { email: id }] }).lean();
+      if (doc) return doc;
+    } catch (e) { /* fallback */ }
+    return inMemoryDoctors.find((d) => d.id === id || d.email === id);
+  },
+
+  async addDoctor(doctorData) {
+    const id = `doc-${inMemoryDoctors.length + 1}`;
     const newDoctor = {
       id,
       ...doctorData,
       assignedPatients: []
     };
-    doctors.push(newDoctor);
+    inMemoryDoctors.push(newDoctor);
+
+    try {
+      await Doctor.create(newDoctor);
+    } catch (err) {
+      console.warn('MongoDB save doctor failed, cached in memory:', err.message);
+    }
     return newDoctor;
   },
 
-  getDoctorPatients(doctorId) {
-    const doc = doctors.find((d) => d.id === doctorId);
+  async getDoctorPatients(doctorId) {
+    try {
+      const doc = await Doctor.findOne({ id: doctorId }).lean();
+      if (doc) {
+        const assigned = doc.assignedPatients || [];
+        const patients = await Patient.find({
+          $or: [{ id: { $in: assigned } }, { primaryDoctorId: doctorId }]
+        }).lean();
+        if (patients) return patients;
+      }
+    } catch (e) { /* fallback */ }
+
+    const doc = inMemoryDoctors.find((d) => d.id === doctorId);
     if (!doc) return [];
-    return patients.filter((p) => doc.assignedPatients.includes(p.id) || p.primaryDoctorId === doctorId);
+    return inMemoryPatients.filter((p) => doc.assignedPatients.includes(p.id) || p.primaryDoctorId === doctorId);
   },
 
   // Vitals methods
-  getPatientVitals(patientId) {
-    return vitals
+  async getPatientVitals(patientId) {
+    try {
+      const list = await Vital.find({ patientId }).sort({ recordedAt: -1 }).lean();
+      if (list && list.length > 0) return list;
+    } catch (e) { /* fallback */ }
+
+    return inMemoryVitals
       .filter((v) => v.patientId === patientId)
       .sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt));
   },
 
-  addVitals(vitalsData) {
-    const id = `vit-${vitals.length + 1}`;
+  async addVitals(vitalsData) {
+    const id = `vit-${inMemoryVitals.length + 1}`;
     const newEntry = {
       id,
       ...vitalsData,
       recordedAt: vitalsData.recordedAt || new Date().toISOString()
     };
-    vitals.push(newEntry);
+    inMemoryVitals.push(newEntry);
+
+    try {
+      await Vital.create(newEntry);
+    } catch (err) {
+      console.warn('MongoDB save vitals failed, cached in memory:', err.message);
+    }
     return newEntry;
   },
 
   // Prescriptions methods
-  getPatientPrescriptions(patientId) {
-    return prescriptions
+  async getPatientPrescriptions(patientId) {
+    try {
+      const list = await Prescription.find({ patientId }).sort({ prescribedAt: -1 }).lean();
+      if (list && list.length > 0) return list;
+    } catch (e) { /* fallback */ }
+
+    return inMemoryPrescriptions
       .filter((r) => r.patientId === patientId)
       .sort((a, b) => new Date(b.prescribedAt) - new Date(a.prescribedAt));
   },
 
-  addPrescription(rxData) {
-    const id = `rx-${prescriptions.length + 1}`;
+  async addPrescription(rxData) {
+    const id = `rx-${inMemoryPrescriptions.length + 1}`;
     const newRx = {
       id,
       ...rxData,
       status: rxData.status || 'ACTIVE',
       prescribedAt: rxData.prescribedAt || new Date().toISOString().split('T')[0]
     };
-    prescriptions.push(newRx);
+    inMemoryPrescriptions.push(newRx);
+
+    try {
+      await Prescription.create(newRx);
+    } catch (err) {
+      console.warn('MongoDB save prescription failed, cached in memory:', err.message);
+    }
     return newRx;
   },
 
-  updatePrescriptionStatus(id, status) {
-    const rx = prescriptions.find((r) => r.id === id);
+  async updatePrescriptionStatus(id, status) {
+    try {
+      await Prescription.updateOne({ id }, { status });
+    } catch (err) {
+      console.warn('MongoDB update prescription failed:', err.message);
+    }
+
+    const rx = inMemoryPrescriptions.find((r) => r.id === id);
     if (rx) {
       rx.status = status;
     }
