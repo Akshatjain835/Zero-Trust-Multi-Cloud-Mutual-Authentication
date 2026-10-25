@@ -113,4 +113,31 @@ const cloudC = createCert('localhost', 'CloudC-Azure', false, caKey, caCert, caA
 fs.writeFileSync(path.join(certsDir, 'cloudC.key'), cloudC.pemKey);
 fs.writeFileSync(path.join(certsDir, 'cloudC.crt'), cloudC.pemCert);
 
-console.log('✅ All 3-Cloud Zero-Trust mTLS certificates generated successfully!');
+// Rogue Untrusted CA & Spoofed Client Certificate (Red-Team Simulation)
+console.log('💀 Generating Rogue Untrusted CA & Spoofed Certificate for Attack Simulation...');
+const rogueKeys = forge.pki.rsa.generateKeyPair(2048);
+const rogueCaCert = forge.pki.createCertificate();
+rogueCaCert.publicKey = rogueKeys.publicKey;
+rogueCaCert.serialNumber = '99';
+rogueCaCert.validity.notBefore = new Date();
+rogueCaCert.validity.notAfter = new Date();
+rogueCaCert.validity.notAfter.setFullYear(rogueCaCert.validity.notBefore.getFullYear() + 1);
+const rogueAttrs = [
+  { name: 'countryName', value: 'XX' },
+  { name: 'organizationName', value: 'RogueAttackerNet' },
+  { name: 'commonName', value: 'Rogue-UntrustedCA' }
+];
+rogueCaCert.setSubject(rogueAttrs);
+rogueCaCert.setIssuer(rogueAttrs);
+rogueCaCert.setExtensions([
+  { name: 'basicConstraints', cA: true, isCritical: true },
+  { name: 'keyUsage', keyCertSign: true, cRLSign: true, isCritical: true }
+]);
+rogueCaCert.sign(rogueKeys.privateKey, forge.md.sha256.create());
+
+const rogueClient = createCert('cloud-a-auth', 'Spoofed-CloudA', true, rogueKeys.privateKey, rogueCaCert, rogueAttrs, '999');
+fs.writeFileSync(path.join(certsDir, 'rogueUntrusted.key'), rogueClient.pemKey);
+fs.writeFileSync(path.join(certsDir, 'rogueUntrusted.crt'), rogueClient.pemCert);
+
+console.log('✅ All 3-Cloud Zero-Trust mTLS certificates + Rogue attack certs generated successfully!');
+

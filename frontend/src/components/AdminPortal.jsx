@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserPlus, Stethoscope, Users, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 
-export default function AdminPortal({ token }) {
+export default function AdminPortal({ token, onOpenVisualizer }) {
   const [activeSubTab, setActiveSubTab] = useState('register-doctor');
   const [doctorsList, setDoctorsList] = useState([]);
   const [patientsList, setPatientsList] = useState([]);
@@ -70,7 +70,7 @@ export default function AdminPortal({ token }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Admin Header */}
       <div className="glass-card" style={{ padding: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#f8fafc', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <ShieldCheck style={{ color: '#6366f1' }} size={24} />
@@ -80,7 +80,26 @@ export default function AdminPortal({ token }) {
               Register new Healthcare Professionals & Patients. Data payloads are encrypted & verified via mTLS between AWS & GCP.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {onOpenVisualizer && (
+              <button
+                onClick={onOpenVisualizer}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(16,185,129,0.4)',
+                  background: 'rgba(16,185,129,0.15)',
+                  color: '#34d399',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <ShieldCheck size={16} /> 3-Cloud Mesh & Threat Lab
+              </button>
+            )}
             <button
               onClick={() => setActiveSubTab('register-doctor')}
               style={{

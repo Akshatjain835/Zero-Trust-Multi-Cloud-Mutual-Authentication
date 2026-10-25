@@ -96,25 +96,46 @@ export default function App() {
 
         {/* Right Session Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Zero-Trust Demo View Link */}
-          <button
-            onClick={() => setActiveTab(activeTab === 'visualizer' ? 'dashboard' : 'visualizer')}
-            style={{
-              padding: '0.45rem 0.85rem',
-              borderRadius: '0.5rem',
-              background: activeTab === 'visualizer' ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: activeTab === 'visualizer' ? '#a5b4fc' : '#cbd5e1',
-              fontSize: '0.8rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-          >
-            <Activity size={14} /> {activeTab === 'visualizer' ? 'Back to App' : '3-Cloud mTLS Mesh'}
-          </button>
+          {/* 3-Cloud Zero-Trust Mesh & Audit link (Restricted to Administrator) */}
+          {user?.role === 'ADMIN' ? (
+            <button
+              onClick={() => setActiveTab(activeTab === 'visualizer' ? 'dashboard' : 'visualizer')}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '0.5rem',
+                background: activeTab === 'visualizer' ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${activeTab === 'visualizer' ? '#818cf8' : 'rgba(255,255,255,0.12)'}`,
+                color: activeTab === 'visualizer' ? '#c7d2fe' : '#cbd5e1',
+                fontSize: '0.8rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}
+            >
+              <ShieldCheck size={14} style={{ color: '#10b981' }} /> {activeTab === 'visualizer' ? 'Back to Admin Portal' : '3-Cloud mTLS & Audit Ledger'}
+            </button>
+          ) : !user ? (
+            <button
+              onClick={() => setActiveTab(activeTab === 'visualizer' ? 'dashboard' : 'visualizer')}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: '0.5rem',
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#94a3b8',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}
+            >
+              <Activity size={14} /> 3-Cloud mTLS Mesh
+            </button>
+          ) : null}
 
           {user ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -169,14 +190,27 @@ export default function App() {
       {/* Main Content Area */}
       <main>
         {activeTab === 'visualizer' ? (
-          <ZeroTrustVisualizer healthData={healthData} refreshHealth={fetchMeshHealth} />
+          <ZeroTrustVisualizer
+            healthData={healthData}
+            refreshHealth={fetchMeshHealth}
+            user={user}
+            onOpenLogin={(role) => {
+              selectPresetRole(role || 'ADMIN');
+              setShowLoginModal(true);
+            }}
+          />
         ) : !user ? (
           /* Logged Out -> Display Minimal Landing Page */
           <LandingPage onOpenLogin={() => setShowLoginModal(true)} />
         ) : (
           /* Logged In -> Dedicated Clean Dashboards */
           <>
-            {user.role === 'ADMIN' && <AdminPortal token={token} />}
+            {user.role === 'ADMIN' && (
+              <AdminPortal
+                token={token}
+                onOpenVisualizer={() => setActiveTab('visualizer')}
+              />
+            )}
             {user.role === 'DOCTOR' && <DoctorPortal user={user} token={token} />}
             {user.role === 'PATIENT' && <PatientPortal user={user} token={token} />}
           </>

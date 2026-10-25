@@ -50,6 +50,31 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Zero-Trust Microsegmentation & Service Entitlement Enforcer (NIST SP 800-207)
+app.use((req, res, next) => {
+  const clientCert = req.mtls?.clientCert;
+  const clientOrg = clientCert?.subject?.O || clientCert?.subject?.organizationName;
+  const clientCN = clientCert?.subject?.CN;
+
+  // Zero Trust Policy: Cloud B Clinical EHR domain is ONLY accessible by Cloud A Identity Gateway (CloudA-AWS / cloud-a-auth)
+  // Cross-cloud lateral access from Cloud C (Azure) or unentitled peer is strictly denied
+  if (clientOrg === 'CloudC-Azure' || clientCN === 'cloud-c-appointments') {
+    console.warn(`🚨 ZERO-TRUST POLICY REJECTION: Lateral Movement Attempt from [${clientOrg || clientCN}] to ${req.method} ${req.originalUrl}`);
+    return res.status(403).json({
+      error: 'Forbidden: Zero-Trust Microsegmentation Policy Violation',
+      code: 'ZT_LATERAL_MOVEMENT_BLOCKED',
+      threatCategory: 'Lateral Movement & Cross-Cloud Privilege Escalation',
+      clientIdentity: clientOrg || clientCN || 'UNKNOWN',
+      attemptedResource: req.originalUrl,
+      policy: 'Cloud B (GCP EHR) enforces strict micro-segmentation. Service [CloudC-Azure] has NO entitlement to access Clinical EHR records.',
+      nistPrinciple: 'NIST SP 800-207: Continuous Micro-segmentation & Implicit Trust Removal. Valid PKI cert does not grant lateral cross-domain data access.',
+      defenseLayer: 'Layer 7 (Application ABAC & Service Identity Entitlement)'
+    });
+  }
+
+  next();
+});
+
 // Mount modular routes
 app.use('/api/patients', patientRoutes);
 app.use('/api/doctors', doctorRoutes);

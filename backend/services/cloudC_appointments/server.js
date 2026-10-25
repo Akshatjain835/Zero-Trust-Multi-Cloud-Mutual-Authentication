@@ -60,6 +60,29 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Zero-Trust Microsegmentation & Service Entitlement Enforcer (NIST SP 800-207)
+app.use((req, res, next) => {
+  const clientCert = req.mtls?.clientCert;
+  const clientOrg = clientCert?.subject?.O || clientCert?.subject?.organizationName;
+  const clientCN = clientCert?.subject?.CN;
+
+  if (clientOrg === 'CloudB-GCP' || clientCN === 'cloud-b-ehr') {
+    console.warn(`🚨 ZERO-TRUST POLICY REJECTION: Lateral Movement Attempt from [${clientOrg || clientCN}] to ${req.method} ${req.originalUrl}`);
+    return res.status(403).json({
+      error: 'Forbidden: Zero-Trust Microsegmentation Policy Violation',
+      code: 'ZT_LATERAL_MOVEMENT_BLOCKED',
+      threatCategory: 'Lateral Movement & Cross-Cloud Privilege Escalation',
+      clientIdentity: clientOrg || clientCN || 'UNKNOWN',
+      attemptedResource: req.originalUrl,
+      policy: 'Cloud C (Azure Appointments) enforces strict micro-segmentation. Service [CloudB-GCP] has NO entitlement to access Appointment records directly.',
+      nistPrinciple: 'NIST SP 800-207: Continuous Micro-segmentation & Compartmentalization.',
+      defenseLayer: 'Layer 7 (Application ABAC & Service Identity Entitlement)'
+    });
+  }
+
+  next();
+});
+
 // Mount modular routes
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/audit-logs', auditRoutes);

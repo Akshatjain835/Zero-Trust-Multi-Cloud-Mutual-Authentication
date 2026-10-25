@@ -9,6 +9,7 @@ module.exports = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
   cloudBUrl: process.env.CLOUD_B_URL || 'https://localhost:5002',
   cloudCUrl: process.env.CLOUD_C_URL || 'https://localhost:5003',
+  certsDir,
   certs: {
     caPath: process.env.CA_CERT_PATH || path.join(certsDir, 'ca.crt'),
     clientCertPath: process.env.CLIENT_CERT_PATH || path.join(certsDir, 'cloudA.crt'),
