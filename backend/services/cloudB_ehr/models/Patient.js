@@ -9,6 +9,9 @@ const PatientSchema = new mongoose.Schema({
   bloodGroup: { type: String, required: true },
   primaryDoctorId: { type: String, default: null },
   diagnosis: { type: String, default: 'General Wellness' },
+  allergies: { type: [String], default: [] },
+  emergencyContact: { type: String, default: 'Not specified' },
+  codeStatus: { type: String, default: 'FULL CODE' },
   registeredAt: { type: String, default: () => new Date().toISOString().split('T')[0] },
   createdAt: { type: Date, default: Date.now }
 });

@@ -33,6 +33,9 @@ const seedPatients = [
     bloodGroup: 'O+',
     primaryDoctorId: 'doc-1',
     diagnosis: 'Hypertension & Mild Arrhythmia',
+    allergies: ['Latex'],
+    emergencyContact: 'Jane Doe (Spouse) - 555-0123',
+    codeStatus: 'FULL CODE',
     registeredAt: '2026-01-15'
   },
   {
@@ -44,6 +47,9 @@ const seedPatients = [
     bloodGroup: 'A+',
     primaryDoctorId: 'doc-1',
     diagnosis: 'Routine Cardiovascular Checkup',
+    allergies: ['No Known Drug Allergies (NKDA)'],
+    emergencyContact: 'Mark Watson (Father) - 555-0144',
+    codeStatus: 'FULL CODE',
     registeredAt: '2026-03-10'
   },
   {
@@ -55,6 +61,9 @@ const seedPatients = [
     bloodGroup: 'B-',
     primaryDoctorId: 'doc-2',
     diagnosis: 'Chronic Migraine & Cervical Spondylosis',
+    allergies: ['Penicillin (Severe Anaphylaxis Risk)', 'Sulfa Antibiotics'],
+    emergencyContact: 'Linda Chen (Spouse) - 555-0192',
+    codeStatus: 'FULL CODE',
     registeredAt: '2026-04-22'
   }
 ];
@@ -189,6 +198,14 @@ async function initCloudBDB() {
         Prescription.insertMany(seedPrescriptions)
       ]);
       console.log('✅ Cloud B Clinical EHR records seeded successfully into MongoDB.');
+    } else {
+      // Ensure existing records have allergies and emergencyContact
+      for (const p of seedPatients) {
+        await Patient.updateOne(
+          { id: p.id, allergies: { $exists: false } },
+          { $set: { allergies: p.allergies, emergencyContact: p.emergencyContact, codeStatus: p.codeStatus } }
+        );
+      }
     }
     isSeeded = true;
   } catch (err) {

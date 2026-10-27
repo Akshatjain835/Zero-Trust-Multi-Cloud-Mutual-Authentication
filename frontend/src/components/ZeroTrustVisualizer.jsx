@@ -190,7 +190,10 @@ export default function ZeroTrustVisualizer({ healthData, refreshHealth, user, o
 
   const filteredLogs = (healthData?.auditLogs || []).filter((log) => {
     if (auditFilter === 'ALERTS_ONLY') {
-      return log.action?.includes('SECURITY_ALERT') || log.action?.includes('BLOCKED') || log.clientCN?.includes('ATTACKER') || log.clientCN?.includes('ROGUE');
+      return log.action?.includes('SECURITY_ALERT') || log.action?.includes('BLOCKED') || log.action?.includes('BREAK_GLASS') || log.clientCN?.includes('ATTACKER') || log.clientCN?.includes('ROGUE');
+    }
+    if (auditFilter === 'BREAK_GLASS') {
+      return log.action?.includes('BREAK_GLASS');
     }
     return true;
   });
@@ -630,13 +633,32 @@ export default function ZeroTrustVisualizer({ healthData, refreshHealth, user, o
             >
               <AlertTriangle size={12} /> Security Incidents Only
             </button>
+            <button
+              onClick={() => setAuditFilter('BREAK_GLASS')}
+              style={{
+                padding: '0.35rem 0.8rem',
+                borderRadius: '0.375rem',
+                background: auditFilter === 'BREAK_GLASS' ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${auditFilter === 'BREAK_GLASS' ? '#ef4444' : 'rgba(255,255,255,0.1)'}`,
+                color: auditFilter === 'BREAK_GLASS' ? '#fca5a5' : '#cbd5e1',
+                fontSize: '0.75rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem'
+              }}
+            >
+              <Flame size={12} style={{ color: '#ef4444' }} /> Emergency Break-Glass
+            </button>
           </div>
         </div>
 
         <div style={{ maxHeight: '360px', overflowY: 'auto', background: '#090d16', padding: '1rem', borderRadius: '0.65rem', border: '1px solid rgba(255,255,255,0.06)' }}>
           {filteredLogs.length > 0 ? (
             filteredLogs.map((log) => {
-              const isAlert = log.action?.includes('SECURITY_ALERT') || log.action?.includes('BLOCKED') || log.clientCN?.includes('ATTACKER') || log.clientCN?.includes('ROGUE');
+              const isBreakGlass = log.action?.includes('BREAK_GLASS');
+              const isAlert = isBreakGlass || log.action?.includes('SECURITY_ALERT') || log.action?.includes('BLOCKED') || log.clientCN?.includes('ATTACKER') || log.clientCN?.includes('ROGUE');
               return (
                 <div
                   key={log.id}
@@ -647,7 +669,7 @@ export default function ZeroTrustVisualizer({ healthData, refreshHealth, user, o
                     padding: '0.6rem 0.5rem',
                     borderBottom: '1px solid rgba(255,255,255,0.05)',
                     fontSize: '0.8rem',
-                    background: isAlert ? 'rgba(244,63,94,0.06)' : 'transparent',
+                    background: isBreakGlass ? 'rgba(239,68,68,0.12)' : (isAlert ? 'rgba(244,63,94,0.06)' : 'transparent'),
                     borderRadius: '4px'
                   }}
                 >
@@ -658,7 +680,7 @@ export default function ZeroTrustVisualizer({ healthData, refreshHealth, user, o
                   <span
                     className="code-font"
                     style={{
-                      color: isAlert ? '#fda4af' : '#38bdf8',
+                      color: isBreakGlass ? '#fca5a5' : (isAlert ? '#fda4af' : '#38bdf8'),
                       fontWeight: '600',
                       minWidth: '140px',
                       fontSize: '0.75rem',
@@ -670,7 +692,7 @@ export default function ZeroTrustVisualizer({ healthData, refreshHealth, user, o
 
                   <span
                     style={{
-                      color: isAlert ? '#f43f5e' : '#34d399',
+                      color: isBreakGlass ? '#ef4444' : (isAlert ? '#f43f5e' : '#34d399'),
                       fontWeight: '700',
                       minWidth: '180px',
                       fontSize: '0.75rem',
@@ -680,7 +702,7 @@ export default function ZeroTrustVisualizer({ healthData, refreshHealth, user, o
                       gap: '0.3rem'
                     }}
                   >
-                    {isAlert && <AlertTriangle size={12} />}
+                    {isBreakGlass ? <Flame size={12} style={{ color: '#ef4444' }} /> : (isAlert && <AlertTriangle size={12} />)}
                     {log.action}
                   </span>
 
