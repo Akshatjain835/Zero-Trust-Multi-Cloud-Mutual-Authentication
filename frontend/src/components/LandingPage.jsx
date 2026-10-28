@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShieldCheck, Stethoscope, User, Lock, HeartPulse, ArrowRight, Activity, CheckCircle, Calendar } from 'lucide-react';
 
-export default function LandingPage({ onOpenLogin }) {
+export default function LandingPage({ onOpenLogin, onOpenVault, onOpenVisualizer }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', paddingBottom: '3rem' }}>
       {/* Hero Banner */}
@@ -27,6 +27,7 @@ export default function LandingPage({ onOpenLogin }) {
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <button
+            id="hero-signin-btn"
             onClick={onOpenLogin}
             style={{
               padding: '0.85rem 2.25rem',
@@ -45,6 +46,29 @@ export default function LandingPage({ onOpenLogin }) {
           >
             Sign In to Dashboard <ArrowRight size={18} />
           </button>
+
+          {onOpenVault && (
+            <button
+              id="hero-vault-btn"
+              onClick={onOpenVault}
+              style={{
+                padding: '0.85rem 2rem',
+                borderRadius: '0.75rem',
+                background: 'linear-gradient(135deg, rgba(168,85,247,0.2) 0%, rgba(99,102,241,0.2) 100%)',
+                border: '1px solid rgba(168,85,247,0.5)',
+                color: '#e9d5ff',
+                fontWeight: '700',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                boxShadow: '0 10px 25px rgba(168,85,247,0.25)'
+              }}
+            >
+              <Lock size={18} style={{ color: '#c084fc' }} /> 🔑 Shamir Threshold Vault Lab
+            </button>
+          )}
         </div>
       </div>
 
@@ -82,6 +106,26 @@ export default function LandingPage({ onOpenLogin }) {
             <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CheckCircle size={14} style={{ color: '#34d399' }} /> Personal health record</li>
             <li style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CheckCircle size={14} style={{ color: '#34d399' }} /> Past doctor consultations</li>
           </ul>
+        </div>
+
+        {/* Shamir (k,n) Vault Card */}
+        <div
+          className="glass-card glass-card-hover"
+          style={{ padding: '2rem', borderTop: '4px solid #a855f7', cursor: onOpenVault ? 'pointer' : 'default' }}
+          onClick={onOpenVault}
+        >
+          <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: 'rgba(168, 85, 247, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c084fc', marginBottom: '1.25rem' }}>
+            <Lock size={26} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '0 0 0.5rem 0', color: '#f8fafc' }}>
+            Shamir (k=2, n=3) Vault
+          </h3>
+          <p style={{ fontSize: '0.9rem', color: '#94a3b8', margin: '0 0 1rem 0', lineHeight: '1.5' }}>
+            Polynomial key splitting over finite field F_p. 1 compromised cloud leaks 0.00% data. Any 2 clouds recover Master AES-256 Key.
+          </p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#c084fc', fontSize: '0.85rem', fontWeight: '700', marginTop: '0.5rem' }}>
+            Launch Mathematical Lab <ArrowRight size={14} />
+          </div>
         </div>
 
         {/* Zero-Trust Security Card */}
