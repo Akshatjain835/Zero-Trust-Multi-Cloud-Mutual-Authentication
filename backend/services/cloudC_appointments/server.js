@@ -14,6 +14,7 @@ connectDB();
 
 const appointmentRoutes = require('./routes/appointment.routes');
 const auditRoutes = require('./routes/audit.routes');
+const vaultRoutes = require('./routes/vault.routes');
 const store = require('./store');
 
 const app = express();
@@ -93,6 +94,7 @@ app.use((req, res, next) => {
 // Mount modular routes
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/audit-logs', auditRoutes);
+app.use('/api/vault', vaultRoutes);
 
 // Load SSL/TLS certificates
 const options = {

@@ -15,6 +15,7 @@ connectDB();
 const patientRoutes = require('./routes/patient.routes');
 const doctorRoutes = require('./routes/doctor.routes');
 const ehrRoutes = require('./routes/ehr.routes');
+const vaultRoutes = require('./routes/vault.routes');
 const store = require('./store');
 
 const app = express();
@@ -86,6 +87,7 @@ app.use((req, res, next) => {
 app.use('/api/patients', patientRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/ehr', ehrRoutes);
+app.use('/api/vault', vaultRoutes);
 
 // Load SSL/TLS certificates
 const options = {

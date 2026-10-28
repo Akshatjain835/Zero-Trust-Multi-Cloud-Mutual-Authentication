@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Stethoscope, Users, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { UserPlus, Stethoscope, Users, CheckCircle2, AlertCircle, ShieldCheck, KeyRound } from 'lucide-react';
 import axios from 'axios';
 
-export default function AdminPortal({ token, onOpenVisualizer }) {
+export default function AdminPortal({ token, onOpenVisualizer, onOpenVault }) {
   const [activeSubTab, setActiveSubTab] = useState('register-doctor');
   const [doctorsList, setDoctorsList] = useState([]);
   const [patientsList, setPatientsList] = useState([]);
@@ -81,6 +81,25 @@ export default function AdminPortal({ token, onOpenVisualizer }) {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {onOpenVault && (
+              <button
+                onClick={onOpenVault}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.5rem',
+                  border: '1px solid rgba(168,85,247,0.4)',
+                  background: 'rgba(168,85,247,0.15)',
+                  color: '#c084fc',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem'
+                }}
+              >
+                <KeyRound size={16} /> 🔑 Shamir Vault Lab
+              </button>
+            )}
             {onOpenVisualizer && (
               <button
                 onClick={onOpenVisualizer}

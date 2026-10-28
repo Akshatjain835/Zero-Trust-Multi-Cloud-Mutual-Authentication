@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, HeartPulse, LogIn, LogOut, Key, UserCheck, Stethoscope, User, Activity, X } from 'lucide-react';
+import { ShieldCheck, HeartPulse, LogIn, LogOut, Key, KeyRound, UserCheck, Stethoscope, User, Activity, X } from 'lucide-react';
 import axios from 'axios';
 
 import LandingPage from './components/LandingPage';
@@ -7,11 +7,41 @@ import AdminPortal from './components/AdminPortal';
 import DoctorPortal from './components/DoctorPortal';
 import PatientPortal from './components/PatientPortal';
 import ZeroTrustVisualizer from './components/ZeroTrustVisualizer';
+import ThresholdVaultLab from './components/ThresholdVaultLab';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || '');
-  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' or 'visualizer'
+  const getInitialTab = () => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'vault' || tab === 'shamir-vault') return 'vault';
+    if (tab === 'visualizer') return 'visualizer';
+    return 'dashboard';
+  };
+
+  const [activeTab, setActiveTabState] = useState(getInitialTab);
+
+  const setActiveTab = (newTab) => {
+    setActiveTabState(newTab);
+    const url = new URL(window.location);
+    if (newTab === 'vault') {
+      url.searchParams.set('tab', 'shamir-vault');
+    } else if (newTab === 'visualizer') {
+      url.searchParams.set('tab', 'visualizer');
+    } else {
+      url.searchParams.delete('tab');
+    }
+    window.history.replaceState({}, '', url);
+  };
+
+  useEffect(() => {
+    const onPopState = () => {
+      setActiveTabState(getInitialTab());
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   // Login Modal State
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -95,10 +125,35 @@ export default function App() {
         </div>
 
         {/* Right Session Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* 3-Cloud Zero-Trust Mesh & Audit link (Restricted to Administrator) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Shamir Threshold Vault Lab (Algorithm Demo) */}
+          <button
+            id="nav-shamir-vault"
+            onClick={() => setActiveTab(activeTab === 'vault' ? 'dashboard' : 'vault')}
+            style={{
+              padding: '0.45rem 0.85rem',
+              borderRadius: '0.5rem',
+              background: activeTab === 'vault' ? 'rgba(168,85,247,0.25)' : 'rgba(168,85,247,0.08)',
+              border: `1px solid ${activeTab === 'vault' ? '#c084fc' : 'rgba(168,85,247,0.3)'}`,
+              color: activeTab === 'vault' ? '#f3e8ff' : '#d8b4fe',
+              fontSize: '0.8rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              boxShadow: activeTab === 'vault' ? '0 0 14px rgba(168,85,247,0.4)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <KeyRound size={14} style={{ color: '#c084fc' }} />
+            {activeTab === 'vault' ? (user ? 'Back to Portal' : 'Back to Home') : '🔑 Shamir Threshold Vault'}
+          </button>
+
+          {/* 3-Cloud Zero-Trust Mesh & Audit link */}
           {user?.role === 'ADMIN' ? (
             <button
+              id="nav-mtls-admin"
               onClick={() => setActiveTab(activeTab === 'visualizer' ? 'dashboard' : 'visualizer')}
               style={{
                 padding: '0.45rem 0.85rem',
@@ -118,6 +173,7 @@ export default function App() {
             </button>
           ) : !user ? (
             <button
+              id="nav-mtls-mesh"
               onClick={() => setActiveTab(activeTab === 'visualizer' ? 'dashboard' : 'visualizer')}
               style={{
                 padding: '0.45rem 0.85rem',
@@ -146,6 +202,7 @@ export default function App() {
                 </span>
               </div>
               <button
+                id="btn-logout"
                 onClick={handleLogout}
                 style={{
                   padding: '0.45rem 0.75rem',
@@ -165,6 +222,7 @@ export default function App() {
             </div>
           ) : (
             <button
+              id="btn-signin-modal"
               onClick={() => setShowLoginModal(true)}
               style={{
                 padding: '0.55rem 1.25rem',
@@ -189,7 +247,9 @@ export default function App() {
 
       {/* Main Content Area */}
       <main>
-        {activeTab === 'visualizer' ? (
+        {activeTab === 'vault' ? (
+          <ThresholdVaultLab user={user} token={token} />
+        ) : activeTab === 'visualizer' ? (
           <ZeroTrustVisualizer
             healthData={healthData}
             refreshHealth={fetchMeshHealth}
@@ -201,7 +261,11 @@ export default function App() {
           />
         ) : !user ? (
           /* Logged Out -> Display Minimal Landing Page */
-          <LandingPage onOpenLogin={() => setShowLoginModal(true)} />
+          <LandingPage
+            onOpenLogin={() => setShowLoginModal(true)}
+            onOpenVault={() => setActiveTab('vault')}
+            onOpenVisualizer={() => setActiveTab('visualizer')}
+          />
         ) : (
           /* Logged In -> Dedicated Clean Dashboards */
           <>
@@ -209,6 +273,7 @@ export default function App() {
               <AdminPortal
                 token={token}
                 onOpenVisualizer={() => setActiveTab('visualizer')}
+                onOpenVault={() => setActiveTab('vault')}
               />
             )}
             {user.role === 'DOCTOR' && <DoctorPortal user={user} token={token} />}
