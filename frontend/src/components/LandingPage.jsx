@@ -124,7 +124,7 @@ export default function LandingPage({ onOpenLogin, onOpenVault, onOpenVisualizer
             Polynomial key splitting over finite field F_p. 1 compromised cloud leaks 0.00% data. Any 2 clouds recover Master AES-256 Key.
           </p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#c084fc', fontSize: '0.85rem', fontWeight: '700', marginTop: '0.5rem' }}>
-            Launch Mathematical Lab <ArrowRight size={14} />
+            Launch mathematical Lab <ArrowRight size={14} />
           </div>
         </div>
 
